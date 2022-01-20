@@ -84,7 +84,11 @@ def main(argv: List[str] = sys.argv[:1]) -> None:
         help="List fixers to skip. One of: {}".format(", ".join(fixers_list)),
     )
     parser.add_argument(
-        "files", nargs="+", type=pathlib.Path, help="Space separated list of files."
+        "files",
+        nargs="+",
+        type=pathlib.Path,
+        default=[],
+        help="Space separated list of files.",
     )
 
     options = parser.parse_args(argv)
