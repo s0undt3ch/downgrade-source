@@ -1,4 +1,4 @@
--   id: untype
+-   id: untype-source
     name: Untype Source Code
     entry: untype-source
     language: python
