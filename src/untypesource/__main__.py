@@ -85,7 +85,7 @@ def main(argv: List[str] = sys.argv[1:]) -> None:
     )
     parser.add_argument(
         "files",
-        nargs="?",
+        nargs="*",
         type=pathlib.Path,
         default=[],
         help="Space separated list of files.",
