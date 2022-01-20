@@ -21,7 +21,10 @@ def untype_source(
     exitcode = 0
     for src_file in files:
         relative = src_file.relative_to(pkg_path)
-        dest = pkg_path / "untyped" / relative
+        destdir = pkg_path / "untyped"
+        destdir.mkdir(parents=True, exist_ok=True)
+        destdir.joinpath("__init__.py").touch()
+        dest = destdir / relative
         dest.parent.mkdir(parents=True, exist_ok=True)
         if dest.exists():
             prev_contents = dest.read_text()
