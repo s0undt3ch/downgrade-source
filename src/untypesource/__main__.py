@@ -51,7 +51,7 @@ def untype_source(
     return exitcode
 
 
-def main(argv: List[str] = sys.argv[:1]) -> None:
+def main(argv: List[str] = sys.argv[1:]) -> None:
     checkers_list = list(transpile.get_available_classes(checkers, cb.CheckerBase))
     fixers_list = list(transpile.get_available_classes(fixers, fb.FixerBase))
     parser = argparse.ArgumentParser(prog=__name__)
@@ -65,33 +65,63 @@ def main(argv: List[str] = sys.argv[:1]) -> None:
         type=pathlib.Path,
         help="Path to package. For example, `--pkg-source=src/mypackage`",
     )
+    parser.add_argument("--list-checkers", action="store_true")
     parser.add_argument(
         "--sc",
         "--skip-checker",
         dest="skip_checkers",
         action="append",
         default=[],
-        choices=checkers_list,
-        help="List checkers to skip. One of: {}".format(", ".join(checkers_list)),
+        help="List checkers to skip. Check all of them by passing --list-checkers",
     )
+    parser.add_argument("--list-fixers", action="store_true")
     parser.add_argument(
         "--sf",
         "--skip-fixer",
         dest="skip_fixers",
         action="append",
         default=[],
-        choices=fixers_list,
-        help="List fixers to skip. One of: {}".format(", ".join(fixers_list)),
+        help="List fixers to skip. Check all of them by passing --list-fixers",
     )
     parser.add_argument(
         "files",
-        nargs="+",
+        nargs="?",
         type=pathlib.Path,
         default=[],
         help="Space separated list of files.",
     )
 
     options = parser.parse_args(argv)
+    if options.list_fixers:
+        parser.exit(
+            status=0,
+            message="Fixers List:\n{}\n".format("\n".join([f"  - {item}" for item in fixers_list])),
+        )
+    if options.list_checkers:
+        parser.exit(
+            status=0,
+            message="Checkers List:\n{}\n".format(
+                "\n".join([f"  - {item}" for item in checkers_list])
+            ),
+        )
+
+    for checker in options.skip_checkers:
+        if checker not in checkers_list:
+            parser.exit(
+                status=1,
+                message=f"{checker} is not a valid checker. Pass --list-checkers for the full allowed list",
+            )
+
+    for fixer in options.skip_fixers:
+        if fixer not in fixers_list:
+            parser.exit(
+                status=1,
+                message=f"{fixer} is not a valid fixer. Pass --list-fixers for the full allowed list",
+            )
+
+    if not options.files:
+        parser.exit(status=1, message="No files were passed")
+
     exitcode = untype_source(
         files=options.files,
         pkg_path=options.pkg_path,
