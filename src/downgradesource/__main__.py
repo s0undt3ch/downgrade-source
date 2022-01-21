@@ -119,8 +119,8 @@ def main(argv: Optional[List[str]] = None) -> None:
     )
     parser.add_argument(
         "--no-black",
-        action="store_false",
-        default=True,
+        action="store_true",
+        default=False,
         help="Don't format the 'downgraded' code with Black.",
     )
     parser.add_argument(
