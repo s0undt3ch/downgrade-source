@@ -25,7 +25,7 @@ repos:
         args:
           - --py36-plus
         files: ^((setup|noxfile)|(src|tests)/.*)\.py$
-        exclude: ^src/untypesource/version.py$
+        exclude: ^src/downgradesource/version.py$
 
   - repo: https://github.com/asottile/reorder_python_imports
     rev: v2.6.0
@@ -34,21 +34,21 @@ repos:
         args:
           - --py36-plus
           - --application-directories=.:src
-        exclude: ^src/untypesource/version.py$
+        exclude: ^src/downgradesource/version.py$
 
   - repo: https://github.com/psf/black
     rev: 21.12b0
     hooks:
       - id: black
         args: [-l 100]
-        exclude: ^src/untypesource/version.py$
+        exclude: ^src/downgradesource/version.py$
 
   - repo: https://github.com/asottile/blacken-docs
     rev: v1.12.0
     hooks:
       - id: blacken-docs
         args: [--skip-errors]
-        files: ^(docs/.*\.rst|src/untypesource/.*\.py)$
+        files: ^(docs/.*\.rst|src/downgradesource/.*\.py)$
         additional_dependencies: [black==21.12b0]
   # <---- Formatting -------------------------------------------------------------------------------------------------
 
@@ -61,7 +61,7 @@ repos:
         name: Run bandit against the code base
         args: [--silent, -lll, --skip, B701]
         files: ^(?!tests/).*\.py$
-        exclude: src/untypesource/version.py
+        exclude: src/downgradesource/version.py
   - repo: https://github.com/PyCQA/bandit
     rev: "1.7.1"
     hooks:
@@ -77,7 +77,7 @@ repos:
     rev: '4.0.1'
     hooks:
       - id: flake8
-        exclude: ^(src/untypesource/version\.py|\.pre-commit-hooks/.*\.py)$
+        exclude: ^(src/downgradesource/version\.py|\.pre-commit-hooks/.*\.py)$
         additional_dependencies:
         - flake8-mypy-fork
         - flake8-docstrings

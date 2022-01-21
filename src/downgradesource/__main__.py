@@ -2,7 +2,9 @@ import argparse
 import pathlib
 import sys
 from typing import List
+from typing import Optional
 
+import black
 from lib3to6 import checker_base as cb
 from lib3to6 import checkers
 from lib3to6 import common
@@ -11,17 +13,31 @@ from lib3to6 import fixers
 from lib3to6 import transpile
 
 
+BLACK_TARGET_VERSIONS = {vs.name: vs for vs in black.TargetVersion}
+
+
+def format_code(contents: str, black_mode: black.FileMode) -> str:
+    try:
+        formatted_contents: str = black.format_str(contents, mode=black_mode)
+        return formatted_contents
+    except Exception:
+        # We simply ignore any exceptions raised by black and return the
+        # unformatted contents
+        return contents
+
+
 def untype_source(
     files: List[pathlib.Path],
     pkg_path: pathlib.Path,
     target_version: str,
     checkers_list: List[str],
     fixers_list: List[str],
+    skip_black_formatting: bool = False,
 ) -> int:
     exitcode = 0
     for src_file in files:
         relative = src_file.relative_to(pkg_path)
-        destdir = pkg_path / "untyped"
+        destdir = pkg_path / "downgraded"
         destdir.mkdir(parents=True, exist_ok=True)
         destdir.joinpath("__init__.py").touch()
         dest = destdir / relative
@@ -47,6 +63,17 @@ def untype_source(
             err.args = (loc + " - " + err.args[0],) + err.args[1:]
             raise
 
+        if skip_black_formatting is False:
+            black_target_version = BLACK_TARGET_VERSIONS.get(
+                "PY{}".format(target_version.replace(".", ""))
+            )
+            if black_target_version:
+                target_versions = [black_target_version]
+            else:
+                target_versions = None
+            black_mode = black.FileMode(target_versions=target_versions, string_normalization=False)
+            fixed_source_text = format_code(fixed_source_text, black_mode)
+
         if not prev_contents or prev_contents != fixed_source_text:
             print(f"Untyping {src_file} -> {dest}")
             dest.write_text(fixed_source_text)
@@ -54,7 +81,10 @@ def untype_source(
     return exitcode
 
 
-def main(argv: List[str] = sys.argv[1:]) -> None:
+def main(argv: Optional[List[str]] = None) -> None:
+    if argv is None:
+        argv = sys.argv[1:]
+
     checkers_list = list(transpile.get_available_classes(checkers, cb.CheckerBase))
     fixers_list = list(transpile.get_available_classes(fixers, fb.FixerBase))
     parser = argparse.ArgumentParser(prog=__name__)
@@ -66,6 +96,7 @@ def main(argv: List[str] = sys.argv[1:]) -> None:
     parser.add_argument(
         "--pkg-path",
         type=pathlib.Path,
+        required=True,
         help="Path to package. For example, `--pkg-source=src/mypackage`",
     )
     parser.add_argument("--list-checkers", action="store_true")
@@ -85,6 +116,12 @@ def main(argv: List[str] = sys.argv[1:]) -> None:
         action="append",
         default=[],
         help="List fixers to skip. Check all of them by passing --list-fixers",
+    )
+    parser.add_argument(
+        "--no-black",
+        action="store_false",
+        default=True,
+        help="Don't format the 'downgraded' code with Black.",
     )
     parser.add_argument(
         "files",
@@ -131,6 +168,7 @@ def main(argv: List[str] = sys.argv[1:]) -> None:
         target_version=options.target_version,
         checkers_list=[ck for ck in checkers_list if ck not in options.skip_checkers],
         fixers_list=[fx for fx in fixers_list if fx not in options.skip_fixers],
+        skip_black_formatting=options.no_black is True,
     )
     parser.exit(status=exitcode)
 

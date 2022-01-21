@@ -1,6 +1,6 @@
--   id: untype-source
-    name: Untype Source Code
-    entry: untype-source
+-   id: downgrade-source
+    name: Downgrade Source Code
+    entry: downgrade-source
     language: python
     args: []
     require_serial: false

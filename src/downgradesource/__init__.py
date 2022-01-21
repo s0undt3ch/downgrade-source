@@ -6,7 +6,7 @@ except ImportError:  # pragma: no cover
         from importlib.metadata import version, PackageNotFoundError
 
         try:
-            __version__ = version("untype-source")
+            __version__ = version("downgrade-source")
         except PackageNotFoundError:
             # package is not installed
             pass
@@ -15,7 +15,7 @@ except ImportError:  # pragma: no cover
             from importlib_metadata import version, PackageNotFoundError
 
             try:
-                __version__ = version("untype-source")
+                __version__ = version("downgrade-source")
             except PackageNotFoundError:
                 # package is not installed
                 pass
@@ -24,7 +24,7 @@ except ImportError:  # pragma: no cover
                 from pkg_resources import get_distribution, DistributionNotFound
 
                 try:
-                    __version__ = get_distribution("untype-source").version
+                    __version__ = get_distribution("downgrade-source").version
                 except DistributionNotFound:
                     # package is not installed
                     pass
