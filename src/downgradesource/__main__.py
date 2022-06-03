@@ -32,6 +32,7 @@ def untype_source(
     target_version: str,
     checkers_list: List[str],
     fixers_list: List[str],
+    install_requires: List[str],
     skip_black_formatting: bool = False,
 ) -> int:
     exitcode = 0
@@ -51,6 +52,7 @@ def untype_source(
             fixers=",".join(fixers_list),
             target_version=target_version,
             filepath=src_file.name,
+            install_requires=" ".join(install_requires).strip() or None,
         )
         source_text = src_file.read_text()
         try:
@@ -118,6 +120,18 @@ def main(argv: Optional[List[str]] = None) -> None:
         help="List fixers to skip. Check all of them by passing --list-fixers",
     )
     parser.add_argument(
+        "--ir",
+        "--install-requires",
+        dest="install_requires",
+        action="append",
+        default=[],
+        help=(
+            "List of install requirements. This list is passed directly to "
+            "lib3to6, the underlying library which does the downgrade "
+            "procedure."
+        ),
+    )
+    parser.add_argument(
         "--no-black",
         action="store_true",
         default=False,
@@ -168,6 +182,7 @@ def main(argv: Optional[List[str]] = None) -> None:
         target_version=options.target_version,
         checkers_list=[ck for ck in checkers_list if ck not in options.skip_checkers],
         fixers_list=[fx for fx in fixers_list if fx not in options.skip_fixers],
+        install_requires=options.install_requires,
         skip_black_formatting=options.no_black is True,
     )
     parser.exit(status=exitcode)
