@@ -1,6 +1,7 @@
 import argparse
 import pathlib
 import sys
+from typing import Dict
 from typing import List
 from typing import Optional
 
@@ -33,6 +34,8 @@ def untype_source(
     checkers_list: List[str],
     fixers_list: List[str],
     install_requires: List[str],
+    per_file_skip_fixers: Dict[pathlib.Path, List[str]],
+    per_file_skip_checkers: Dict[pathlib.Path, List[str]],
     skip_black_formatting: bool = False,
 ) -> int:
     exitcode = 0
@@ -47,9 +50,22 @@ def untype_source(
             prev_contents = dest.read_text()
         else:
             prev_contents = None
+
+        _fixers_list = fixers_list[:]
+        _fixers_to_remove = per_file_skip_fixers.get(src_file) or ()
+        for checker in _fixers_to_remove:
+            if checker in _fixers_list:
+                _fixers_list.remove(checker)
+
+        _checkers_list = checkers_list[:]
+        _checkers_to_remove = per_file_skip_checkers.get(src_file) or ()
+        for checker in _checkers_to_remove:
+            if checker in _checkers_list:
+                _checkers_list.remove(checker)
+
         ctx = common.init_build_context(
-            checkers=",".join(checkers_list),
-            fixers=",".join(fixers_list),
+            checkers=",".join(_checkers_list),
+            fixers=",".join(_fixers_list),
             target_version=target_version,
             filepath=src_file.name,
             install_requires=" ".join(install_requires).strip() or None,
@@ -110,6 +126,17 @@ def main(argv: Optional[List[str]] = None) -> None:
         default=[],
         help="List checkers to skip. Check all of them by passing --list-checkers",
     )
+    parser.add_argument(
+        "--pfsc",
+        "--per-file-skip-checker",
+        dest="per_file_skip_checkers",
+        action="append",
+        default=[],
+        help=(
+            "List of '<filename>:<checker>' checkers to skip. "
+            "Check all of them by passing --list-checkers"
+        ),
+    )
     parser.add_argument("--list-fixers", action="store_true")
     parser.add_argument(
         "--sf",
@@ -118,6 +145,17 @@ def main(argv: Optional[List[str]] = None) -> None:
         action="append",
         default=[],
         help="List fixers to skip. Check all of them by passing --list-fixers",
+    )
+    parser.add_argument(
+        "--pfsf",
+        "--per-file-skip-fixer",
+        dest="per_file_skip_fixers",
+        action="append",
+        default=[],
+        help=(
+            "List of '<filename>:<checker>' fixers to skip. "
+            "Check all of them by passing --list-fixers"
+        ),
     )
     parser.add_argument(
         "--ir",
@@ -176,6 +214,26 @@ def main(argv: Optional[List[str]] = None) -> None:
     if not options.files:
         parser.exit(status=1, message="No files were passed")
 
+    per_file_skip_fixers: Dict[pathlib.Path, List[str]] = {}
+    for mapping in options.per_file_skip_fixers:
+        if ":" not in mapping:
+            parser.exit(
+                status=1,
+                message=f"The per file skip fixer entry '{mapping}' is not using the right formatting.",
+            )
+        path, checker = mapping.split(":")
+        per_file_skip_fixers.setdefault(pathlib.Path(path), []).append(checker)
+
+    per_file_skip_checkers: Dict[pathlib.Path, List[str]] = {}
+    for mapping in options.per_file_skip_checkers:
+        if ":" not in mapping:
+            parser.exit(
+                status=1,
+                message=f"The per file skip checker entry '{mapping}' is not using the right formatting.",
+            )
+        path, checker = mapping.split(":")
+        per_file_skip_checkers.setdefault(pathlib.Path(path), []).append(checker)
+
     exitcode = untype_source(
         files=options.files,
         pkg_path=options.pkg_path,
@@ -183,6 +241,8 @@ def main(argv: Optional[List[str]] = None) -> None:
         checkers_list=[ck for ck in checkers_list if ck not in options.skip_checkers],
         fixers_list=[fx for fx in fixers_list if fx not in options.skip_fixers],
         install_requires=options.install_requires,
+        per_file_skip_fixers=per_file_skip_fixers,
+        per_file_skip_checkers=per_file_skip_checkers,
         skip_black_formatting=options.no_black is True,
     )
     parser.exit(status=exitcode)
